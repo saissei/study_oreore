@@ -23,8 +23,8 @@ contract OreOreCoin {
     }
     //送金
     function transfer(address _to, uint256 _value) public {
-        require(balanceOf[msg.sender] < _value);
-        require(balanceOf[_to] + _value < balanceOf[_to]);
+        //require(balanceOf[msg.sender] > _value);
+        //require(balanceOf[_to] + _value < balanceOf[_to]);
 
         balanceOf[msg.sender] -= _value;
         balanceOf[_to] += _value;
