@@ -1,6 +1,6 @@
 const Web3 = require('web3');
 const web3 = new Web3(Web3.givenProvider || 'http://localhost:8545');
-const contract_addr = '0x8dd6d5f8efe354718f2f571fb70bf9b55e19958d'
+const contract_addr = '0xb8b6f169174031802ec7d913b92554d9888f7089'
 const abi = [
 	{
 		"constant": false,
@@ -144,6 +144,7 @@ const abi = [
 const OreCoin = new web3.eth.Contract(abi, contract_addr);
 
 
+
 const getAccounts = async () => {
   return await web3.eth.getAccounts();
 }
@@ -152,20 +153,39 @@ const OreBalance = async (_address) => {
   return await OreCoin.methods.balanceOf(_address).call();
 }
 
-const oreTransfer = async (_from, _value) => {
-  return await OreCoin.methods.transfer(_from, _value).transact();
+const oreTransfer = async (_from, _to, _value) => {
+  web3.eth.defaultAccount = _from;
+  return await OreCoin.methods.transfer(_to, _value);
 }
 
+/** アカウント一覧の取得 */
 getAccounts()
 .then(_ac => {
-  console.log(_ac);
-  const _from = _ac[0];
 
-  OreBalance(_from)
-  .then(oc => {
-    const _coin = parseInt((oc._hex).replace(/^0x/, ''), 16);
-    console.log(`${_coin} oc`)
+  /** 既存アカウント数チェック */
+  if(_ac.length < 2){
+    const err = 'Number of accounts is not enough.\nprocess exit.';
+    console.log(err);
+    process.exit();
+  };
+  /** 使用するアカウントの変数化 */
+  const _from = _ac[0]; // default coinbase
+  const _to = _ac[1];
+
+  /** 送金処理 */
+  oreTransfer(_from, _to, '10')
+  .then(result => {
+    console.log(result)
+    /** 残高参照 */
+    OreBalance(_from)
+    .then(oc => {
+      /** 16 -> 10 の変換 */
+      const _coin = parseInt((oc._hex).replace(/^0x/, ''), 16);
+      console.log(`${_coin} oc`);
+    })
+    .catch(err => console.error(err))
   })
   .catch(err => console.error(err))
+
 })
 .catch(err => console.error)
