@@ -1,6 +1,6 @@
 const Web3 = require('web3');
 const web3 = new Web3(Web3.givenProvider || 'http://localhost:8545');
-const contract_addr = '0xb8b6f169174031802ec7d913b92554d9888f7089'
+const contract_addr = '0xff153e4306f5c4bbe50bcc5197368dcc510e786a'
 const abi = [
 	{
 		"constant": false,
@@ -155,7 +155,18 @@ const OreBalance = async (_address) => {
 
 const oreTransfer = async (_from, _to, _value) => {
   web3.eth.defaultAccount = _from;
-  return await OreCoin.methods.transfer(_to, _value);
+  return await OreCoin.methods.transfer(_to, _value).send({from: _from}, (error, transactionHash) => {console.log(error, transactionHash)});
+}
+
+const getTransaction = async (_hash) => {
+
+  const result = await web3.eth.getTransaction(_hash);
+
+  if(!result.blockNumber || result.blockNumber === null){
+    return await getTransaction(_hash);
+  }
+  return result.blockNumber;
+
 }
 
 /** アカウント一覧の取得 */
@@ -171,21 +182,30 @@ getAccounts()
   /** 使用するアカウントの変数化 */
   const _from = _ac[0]; // default coinbase
   const _to = _ac[1];
+  const _value = '10';
 
   /** 送金処理 */
-  oreTransfer(_from, _to, '10')
-  .then(result => {
-    console.log(result)
-    /** 残高参照 */
-    OreBalance(_from)
-    .then(oc => {
-      /** 16 -> 10 の変換 */
-      const _coin = parseInt((oc._hex).replace(/^0x/, ''), 16);
-      console.log(`${_coin} oc`);
+  OreCoin.methods.transfer(_to, _value).send({
+    from: _from
+  }, (error, transactionHash) => {
+    if(error){ console.error(error); process.exit() };
+
+    getTransaction(transactionHash)
+    .then(blockNum => {
+      /** 残高参照 */
+      OreBalance(_from)
+      .then(oc => {
+        /** 16 -> 10 の変換 */
+        const _coin = parseInt((oc._hex).replace(/^0x/, ''), 16);
+        console.log(`${_coin} oc`);
+      })
+      .catch(err => console.error(err))
     })
-    .catch(err => console.error(err))
+
+
   })
-  .catch(err => console.error(err))
+
+
 
 })
 .catch(err => console.error)
